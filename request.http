@@ -1,0 +1,59 @@
+### Variables
+@baseUrl = http://localhost:8080/api/v1
+# Ganti token ini dengan token yang didapatkan dari response Login
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+### 1. Register User Baru
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "kevin@example.com",
+  "password": "password123",
+  "full_name": "Kevin Pratama"
+}
+
+### 2. Login User (Dapatkan Token JWT)
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "kevin@example.com",
+  "password": "password123"
+}
+
+### 3. Buat Produk Baru (Protected Route - Memerlukan Token)
+POST {{baseUrl}}/products
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.data.token}}
+
+{
+  "name": "Monitor Gaming 4K 144Hz",
+  "price": 6500000,
+  "stock": 10
+}
+
+### 4. Buat Produk Kedua (Protected Route)
+POST {{baseUrl}}/products
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.data.token}}
+
+{
+  "name": "Keychron Q1 Pro Wireless",
+  "price": 2800000,
+  "stock": 15
+}
+
+### 5. Ambil Semua Produk (Public)
+GET {{baseUrl}}/products
+Content-Type: application/json
+
+### 6. Ambil Produk Berdasarkan ID (Public)
+GET {{baseUrl}}/products/1
+Content-Type: application/json
+
+### 7. Hapus Produk (Protected Route)
+DELETE {{baseUrl}}/products/1
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.data.token}}
