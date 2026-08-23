@@ -8,6 +8,7 @@ import (
 	"gotest/domain"
 	"gotest/repository"
 	"gotest/usecase"
+	"gotest/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
@@ -28,7 +29,10 @@ func main() {
 	}
 	fmt.Println("✅ Database SQLite berhasil dimigrasi!")
 
-	// 2. Dependency Injection
+	// 2. Inisialisasi Redis Cache (Graceful Fallback jika Redis offline)
+	utils.InitRedis("localhost:6379", "", 0)
+
+	// 3. Dependency Injection
 	// Repositories
 	userRepo := repository.NewUserRepository(db)
 	productRepo := repository.NewProductRepository(db)
@@ -41,7 +45,7 @@ func main() {
 	authHandler := http.NewAuthHandler(authUsecase)
 	productHandler := http.NewProductHandler(productUsecase)
 
-	// 3. Router Setup
+	// 4. Router Setup
 	r := gin.Default()
 
 	api := r.Group("/api/v1")
