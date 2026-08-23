@@ -23,18 +23,23 @@ func main() {
 		log.Fatalf("Gagal koneksi database: %v", err)
 	}
 
-	// Auto-Migrate tabel database secara otomatis
-	err = db.AutoMigrate(&domain.User{}, &domain.Product{})
+	// Auto-Migrate semua tabel database secara otomatis
+	err = db.AutoMigrate(
+		&domain.User{},
+		&domain.Product{},
+		&domain.Wallet{},
+		&domain.WalletTransaction{},
+	)
 	if err != nil {
 		log.Fatalf("Gagal migrasi database: %v", err)
 	}
-	fmt.Println("✅ Database SQLite berhasil dimigrasi!")
+	fmt.Println("✅ Database SQLite berhasil dimigrasi (Users, Products, Wallets, Transactions)!")
 
 	// 2. Inisialisasi Redis Cache (Graceful Fallback)
 	utils.InitRedis("localhost:6379", "", 0)
 
 	// 3. Inisialisasi Asynchronous Event Broker & Background Consumers
-	broker := events.NewAsyncChannelBroker(100, 3) // 3 parallel worker pool
+	broker := events.NewAsyncChannelBroker(100, 3)
 	broker.Subscribe("user.registered", events.EmailNotificationConsumer)
 	broker.Subscribe("user.registered", events.AuditLogConsumer)
 	broker.Subscribe("product.created", events.AuditLogConsumer)
@@ -45,14 +50,17 @@ func main() {
 	// Repositories
 	userRepo := repository.NewUserRepository(db)
 	productRepo := repository.NewProductRepository(db)
+	walletRepo := repository.NewWalletRepository(db)
 
-	// Usecases (Injeksi EventBroker ke AuthUsecase)
+	// Usecases
 	authUsecase := usecase.NewAuthUsecase(userRepo, broker)
 	productUsecase := usecase.NewProductUsecase(productRepo)
+	walletUsecase := usecase.NewWalletUsecase(walletRepo)
 
 	// Handlers
 	authHandler := http.NewAuthHandler(authUsecase)
 	productHandler := http.NewProductHandler(productUsecase)
+	walletHandler := http.NewWalletHandler(walletUsecase)
 
 	// 5. Router Setup
 	r := gin.Default()
@@ -74,8 +82,14 @@ func main() {
 		protected := api.Group("/")
 		protected.Use(http.AuthMiddleware())
 		{
+			// Products
 			protected.POST("/products", productHandler.Create)
 			protected.DELETE("/products/:id", productHandler.Delete)
+
+			// Wallets & Transactions (Fintech Module)
+			protected.GET("/wallets/me", walletHandler.GetMyWallet)
+			protected.POST("/wallets/topup", walletHandler.TopUp)
+			protected.POST("/wallets/transfer", walletHandler.Transfer)
 		}
 	}
 

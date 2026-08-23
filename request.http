@@ -3,7 +3,7 @@
 # Ganti token ini dengan token yang didapatkan dari response Login
 @authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
-### 1. Register User Baru
+### 1. Register User 1 (Kevin)
 POST {{baseUrl}}/auth/register
 Content-Type: application/json
 
@@ -13,8 +13,18 @@ Content-Type: application/json
   "full_name": "Kevin Pratama"
 }
 
-### 2. Login User (Dapatkan Token JWT)
-# @name login
+### 2. Register User 2 (Budi)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "budi@example.com",
+  "password": "password123",
+  "full_name": "Budi Santoso"
+}
+
+### 3. Login User 1 (Kevin) - Dapatkan Token
+# @name loginKevin
 POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
@@ -23,37 +33,40 @@ Content-Type: application/json
   "password": "password123"
 }
 
-### 3. Buat Produk Baru (Protected Route - Memerlukan Token)
-POST {{baseUrl}}/products
+### 4. Cek Saldo Dompet Kevin (Protected)
+GET {{baseUrl}}/wallets/me
 Content-Type: application/json
-Authorization: Bearer {{login.response.body.data.token}}
+Authorization: Bearer {{loginKevin.response.body.data.token}}
+
+### 5. Top Up Saldo Kevin Rp500.000 (Protected)
+POST {{baseUrl}}/wallets/topup
+Content-Type: application/json
+Authorization: Bearer {{loginKevin.response.body.data.token}}
 
 {
-  "name": "Monitor Gaming 4K 144Hz",
-  "price": 6500000,
-  "stock": 10
+  "amount": 500000
 }
 
-### 4. Buat Produk Kedua (Protected Route)
-POST {{baseUrl}}/products
+### 6. Transfer Saldo Atomik dari Kevin ke Budi (UserID: 2) Rp150.000 (Protected)
+POST {{baseUrl}}/wallets/transfer
 Content-Type: application/json
-Authorization: Bearer {{login.response.body.data.token}}
+Authorization: Bearer {{loginKevin.response.body.data.token}}
 
 {
-  "name": "Keychron Q1 Pro Wireless",
-  "price": 2800000,
-  "stock": 15
+  "to_user_id": 2,
+  "amount": 150000
 }
 
-### 5. Ambil Semua Produk (Public)
+### 7. Uji Gagal Transfer (Saldo Kurang)
+POST {{baseUrl}}/wallets/transfer
+Content-Type: application/json
+Authorization: Bearer {{loginKevin.response.body.data.token}}
+
+{
+  "to_user_id": 2,
+  "amount": 10000000
+}
+
+### 8. Ambil Semua Produk (Public)
 GET {{baseUrl}}/products
 Content-Type: application/json
-
-### 6. Ambil Produk Berdasarkan ID (Public)
-GET {{baseUrl}}/products/1
-Content-Type: application/json
-
-### 7. Hapus Produk (Protected Route)
-DELETE {{baseUrl}}/products/1
-Content-Type: application/json
-Authorization: Bearer {{login.response.body.data.token}}
