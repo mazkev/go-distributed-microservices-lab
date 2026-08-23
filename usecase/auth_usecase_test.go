@@ -47,7 +47,7 @@ func TestAuthUsecase_Register(t *testing.T) {
 		mockRepo.On("FindByEmail", "kevin@test.com").Return(nil, errors.New("not found"))
 		mockRepo.On("Create", mock.AnythingOfType("*domain.User")).Return(nil)
 
-		uc := usecase.NewAuthUsecase(mockRepo)
+		uc := usecase.NewAuthUsecase(mockRepo, nil)
 
 		req := domain.RegisterRequest{
 			Email:    "kevin@test.com",
@@ -69,7 +69,7 @@ func TestAuthUsecase_Register(t *testing.T) {
 		existingUser := &domain.User{ID: 1, Email: "kevin@test.com"}
 		mockRepo.On("FindByEmail", "kevin@test.com").Return(existingUser, nil)
 
-		uc := usecase.NewAuthUsecase(mockRepo)
+		uc := usecase.NewAuthUsecase(mockRepo, nil)
 
 		req := domain.RegisterRequest{
 			Email:    "kevin@test.com",
@@ -99,7 +99,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 		}
 		mockRepo.On("FindByEmail", "kevin@test.com").Return(user, nil)
 
-		uc := usecase.NewAuthUsecase(mockRepo)
+		uc := usecase.NewAuthUsecase(mockRepo, nil)
 
 		res, err := uc.Login(domain.LoginRequest{
 			Email:    "kevin@test.com",
@@ -122,7 +122,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 		}
 		mockRepo.On("FindByEmail", "kevin@test.com").Return(user, nil)
 
-		uc := usecase.NewAuthUsecase(mockRepo)
+		uc := usecase.NewAuthUsecase(mockRepo, nil)
 
 		res, err := uc.Login(domain.LoginRequest{
 			Email:    "kevin@test.com",

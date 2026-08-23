@@ -6,6 +6,7 @@ import (
 
 	"gotest/delivery/http"
 	"gotest/domain"
+	"gotest/events"
 	"gotest/repository"
 	"gotest/usecase"
 	"gotest/utils"
@@ -29,23 +30,31 @@ func main() {
 	}
 	fmt.Println("✅ Database SQLite berhasil dimigrasi!")
 
-	// 2. Inisialisasi Redis Cache (Graceful Fallback jika Redis offline)
+	// 2. Inisialisasi Redis Cache (Graceful Fallback)
 	utils.InitRedis("localhost:6379", "", 0)
 
-	// 3. Dependency Injection
+	// 3. Inisialisasi Asynchronous Event Broker & Background Consumers
+	broker := events.NewAsyncChannelBroker(100, 3) // 3 parallel worker pool
+	broker.Subscribe("user.registered", events.EmailNotificationConsumer)
+	broker.Subscribe("user.registered", events.AuditLogConsumer)
+	broker.Subscribe("product.created", events.AuditLogConsumer)
+	defer broker.Close()
+	fmt.Println("✅ Asynchronous Event Broker & Worker Pool aktif!")
+
+	// 4. Dependency Injection
 	// Repositories
 	userRepo := repository.NewUserRepository(db)
 	productRepo := repository.NewProductRepository(db)
 
-	// Usecases
-	authUsecase := usecase.NewAuthUsecase(userRepo)
+	// Usecases (Injeksi EventBroker ke AuthUsecase)
+	authUsecase := usecase.NewAuthUsecase(userRepo, broker)
 	productUsecase := usecase.NewProductUsecase(productRepo)
 
 	// Handlers
 	authHandler := http.NewAuthHandler(authUsecase)
 	productHandler := http.NewProductHandler(productUsecase)
 
-	// 4. Router Setup
+	// 5. Router Setup
 	r := gin.Default()
 
 	api := r.Group("/api/v1")
