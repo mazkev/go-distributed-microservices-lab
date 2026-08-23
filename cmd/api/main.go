@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"log/slog"
 
 	"gotest/delivery/http"
 	"gotest/domain"
@@ -17,13 +17,17 @@ import (
 )
 
 func main() {
-	// 1. Inisialisasi Database (SQLite file: app.db)
+	// 1. Inisialisasi JSON Structured Logger (log/slog)
+	utils.InitLogger()
+	slog.Info("Menginisialisasi layanan Backend API...")
+
+	// 2. Inisialisasi Database (SQLite file: app.db)
 	db, err := gorm.Open(sqlite.Open("app.db"), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Gagal koneksi database: %v", err)
 	}
 
-	// Auto-Migrate semua tabel database secara otomatis
+	// Auto-Migrate tabel database
 	err = db.AutoMigrate(
 		&domain.User{},
 		&domain.Product{},
@@ -33,20 +37,20 @@ func main() {
 	if err != nil {
 		log.Fatalf("Gagal migrasi database: %v", err)
 	}
-	fmt.Println("✅ Database SQLite berhasil dimigrasi (Users, Products, Wallets, Transactions)!")
+	slog.Info("Database SQLite berhasil dimigrasi (Users, Products, Wallets, Transactions)")
 
-	// 2. Inisialisasi Redis Cache (Graceful Fallback)
+	// 3. Inisialisasi Redis Cache (Graceful Fallback)
 	utils.InitRedis("localhost:6379", "", 0)
 
-	// 3. Inisialisasi Asynchronous Event Broker & Background Consumers
+	// 4. Inisialisasi Asynchronous Event Broker & Background Consumers
 	broker := events.NewAsyncChannelBroker(100, 3)
 	broker.Subscribe("user.registered", events.EmailNotificationConsumer)
 	broker.Subscribe("user.registered", events.AuditLogConsumer)
 	broker.Subscribe("product.created", events.AuditLogConsumer)
 	defer broker.Close()
-	fmt.Println("✅ Asynchronous Event Broker & Worker Pool aktif!")
+	slog.Info("Asynchronous Event Broker & Worker Pool aktif")
 
-	// 4. Dependency Injection
+	// 5. Dependency Injection
 	// Repositories
 	userRepo := repository.NewUserRepository(db)
 	productRepo := repository.NewProductRepository(db)
@@ -62,8 +66,12 @@ func main() {
 	productHandler := http.NewProductHandler(productUsecase)
 	walletHandler := http.NewWalletHandler(walletUsecase)
 
-	// 5. Router Setup
-	r := gin.Default()
+	// 6. Router Setup dengan Tracing Middleware
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.New()
+	r.Use(gin.Recovery())
+	r.Use(http.RequestIDMiddleware())        // Menyisipkan unique X-Request-ID
+	r.Use(http.StructuredLoggerMiddleware()) // Mencatat log format JSON
 
 	api := r.Group("/api/v1")
 	{
@@ -93,6 +101,6 @@ func main() {
 		}
 	}
 
-	fmt.Println("🚀 Clean Architecture API berjalan di http://localhost:8080")
+	slog.Info("🚀 Clean Architecture API berjalan", slog.String("port", ":8080"), slog.String("env", "production-ready"))
 	r.Run(":8080")
 }

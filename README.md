@@ -1,97 +1,93 @@
-# 🚀 Golang Backend Learning & Production Blueprint
+# 🚀 Enterprise Golang Backend Engineering Blueprint
 
-Repository ini berisi kurikulum komprehensif pembelajaran **Golang Backend Engineering** yang disesuaikan dengan kebutuhan riil industri tech company, fintech, dan startup unicorn (berdasarkan mapping lowongan kerja di JobStreet & LinkedIn).
+Repository ini berisi blueprint arsitektur dan kurikulum komprehensif pembelajaran **Golang Backend Engineering** tingkat lanjut (*Production-Ready*), dirancang sesuai standar tech company, unicorn, dan industri fintech (berdasarkan mapping lowongan kerja di JobStreet & LinkedIn).
 
 ---
 
-## 🗺️ Roadmap & Modul Pembelajaran
+## 🗺️ Peta Arsitektur & Modul Sistem
 
 ```mermaid
-flowchart LR
-    A[1. Fundamentals & Concurrency] --> B[2. REST API & Middlewares]
-    B --> C[3. Clean Architecture & JWT]
-    C --> D[4. Unit Testing & Mocking]
-    D --> E[5. gRPC Microservices]
-    E --> F[6. Docker Multi-Stage Build]
+flowchart TD
+    Client[HTTP Client / Postman / gRPC] --> TraceMiddleware[1. Distributed Tracing: X-Request-ID & slog JSON]
+    TraceMiddleware --> AuthMiddleware[2. JWT Authentication Guard]
+    AuthMiddleware --> Controller[3. Delivery / HTTP Handlers & gRPC Service]
+    
+    Controller --> Usecase[4. Business Logic / Usecase Layer]
+    
+    Usecase <-->|Cache-Aside / Invalidation| Redis[(5. Redis In-Memory Cache)]
+    Usecase <-->|ACID Transaction & Row Locks| DB[(6. SQLite / PostgreSQL)]
+    Usecase -->|Non-blocking Publish| Broker[7. Async Event Broker]
+    
+    Broker --> Worker1[Worker: Email Notification]
+    Broker --> Worker2[Worker: Security Audit Log]
 ```
 
+---
+
+## 🛠️ Ringkasan Modul & Fitur
+
 ### 1. ⚙️ Fundamental & Concurrency
-- **Structs, Pointers & Methods**: Memory management dan mutasi data aman.
-- **Interfaces & Polymorphism**: Desain decoupled code yang mudah diuji.
-- **Error Handling**: Idiomatik `if err != nil` dengan custom domain errors.
-- **Concurrency Master**:
-  - `sync.Mutex` untuk mencegah *Race Condition*.
-  - `sync.WaitGroup` untuk sinkronisasi goroutines paralel.
-  - *Worker Pool Pattern* dengan Channels dan Buffered Channels.
-  - `context.Context` untuk *Timeout & Cancellation* otomatis.
+- Structs, Pointers, Interfaces, Custom Errors.
+- Concurrency: `sync.Mutex`, `sync.WaitGroup`, *Worker Pool Pattern*, `context.Context` Timeout & Cancellation.
+- 📂 Folder: [`basic/`](./basic/) & [`concurrency/`](./concurrency/)
 
-📂 Folder: [`basic/`](./basic/) & [`concurrency/`](./concurrency/)
+### 2. 🏛️ Clean Architecture & Security
+- 4 Lapisan Modular: **Domain**, **Repository**, **Usecase**, **Delivery (HTTP Handlers)**.
+- **JWT Authentication** (Bearer Token) & **Bcrypt Password Hashing**.
+- 📂 Folder: [`domain/`](./domain/), [`repository/`](./repository/), [`usecase/`](./usecase/), [`delivery/`](./delivery/)
 
----
+### 3. ⚡ High-Performance Redis Caching
+- **Cache-Aside Pattern**: Mengurangi latency query database hingga < 1ms.
+- **Auto Cache Invalidation**: Menghindari data basi (*stale data*) saat Create/Delete.
+- **Graceful Fallback**: API tetap beroperasi normal jika Redis offline.
+- 📂 File: [`utils/redis.go`](./utils/redis.go), [`usecase/product_usecase.go`](./usecase/product_usecase.go)
 
-### 2. 🌐 REST API (Gin Framework)
-- HTTP Routing, Grouping, dan Versioning (`/api/v1`).
-- Struct Tag Validation (`binding:"required,min=3,gt=0"`).
-- Custom Middlewares (Request Latency Logger & Timer).
-- Standardized API Response format (`success`, `data`, `error`).
+### 4. 📨 Event-Driven Architecture (EDA) & Background Workers
+- **Event Broker**: Dispatcher in-memory berbasis Goroutines & Channels.
+- **Decoupled Workers**: Pengiriman welcome email dan pencatatan audit log di background tanpa membebani response HTTP user.
+- 📂 Folder: [`events/`](./events/)
 
-📂 Folder: [`rest-api/`](./rest-api/)
+### 5. 💳 Fintech ACID Database Transactions & Row Locking
+- **Atomic Balance Transfer**: Mencegah saldo hilang jika server crash di tengah transfer.
+- **Pessimistic Row Locking (`SELECT FOR UPDATE`)**: Mengunci data baris rekening untuk mencegah *Double Spending* & *Race Condition*.
+- 📂 File: [`domain/wallet.go`](./domain/wallet.go), [`usecase/wallet_usecase.go`](./usecase/wallet_usecase.go)
 
----
+### 6. 📊 Observability & Structured Logging (`log/slog`)
+- Log terstruktur format **JSON** standar Go `log/slog` (kompatibel Datadog/Loki).
+- **Request ID Middleware**: Injeksi header `X-Request-ID` untuk pelacakan alur (*distributed tracing*).
+- 📂 File: [`utils/logger.go`](./utils/logger.go), [`delivery/http/middleware.go`](./delivery/http/middleware.go)
 
-### 3. 🏛️ Enterprise Clean Architecture
-Pemisahan kode menjadi lapisan independen:
-- **`domain/`**: Entitas bisnis dan DTO (Data Transfer Objects).
-- **`repository/`**: Layer akses data dengan database SQLite via **GORM**.
-- **`usecase/`**: Logika bisnis terpusat.
-- **`delivery/http/`**: Controller Gin dan **JWT Authentication Guard Middleware**.
-- **`utils/`**: Bcrypt password hashing & JWT token generator/validator.
+### 7. 🧪 Unit Testing & Mocking (Testify)
+- 100% decoupled unit testing untuk Usecase dengan `testify/mock`.
+- Mencapai **80%+ code coverage**.
+- 📂 File: [`usecase/product_usecase_test.go`](./usecase/product_usecase_test.go), [`usecase/auth_usecase_test.go`](./usecase/auth_usecase_test.go)
 
-📂 Folder: [`domain/`](./domain/), [`repository/`](./repository/), [`usecase/`](./usecase/), [`delivery/`](./delivery/)
+### 8. ⚡ Microservices gRPC & Protocol Buffers
+- Skema Protobuf v3 (`product.proto`).
+- **Unary RPC** & **Server Streaming RPC** via HTTP/2 binary protocol.
+- 📂 Folder: [`grpc/`](./grpc/)
 
----
-
-### 4. 🧪 Unit Testing & Mocking (Testify)
-- 100% decoupling testing pada layer `Usecase`.
-- Mock repository dengan `github.com/stretchr/testify/mock`.
-- Assertions dan validasi skenario positif (*success*) dan skenario negatif (*error / not found*).
-- Mencapai **80% statement coverage**.
-
-📂 Test Files: [`usecase/product_usecase_test.go`](./usecase/product_usecase_test.go), [`usecase/auth_usecase_test.go`](./usecase/auth_usecase_test.go)
-
----
-
-### 5. ⚡ gRPC & Protocol Buffers (Microservices)
-- Kontrak Protobuf v3 (`product.proto`).
-- **Unary RPC**: Pembuatan dan pengambilan produk via protokol biner HTTP/2.
-- **Server Streaming RPC**: Pengiriman stream data produk secara berurutan (*real-time*).
-- Kompilasi otomatis dengan `protoc` + `protoc-gen-go` & `protoc-gen-go-grpc`.
-
-📂 Folder: [`grpc/`](./grpc/)
+### 9. 🐳 Containerization (Docker Multi-Stage Build)
+- Multi-stage build Go yang sangat ringan (**< 20MB**).
+- Orkestrasi API & Redis via `docker-compose.yml`.
+- 📂 File: [`Dockerfile`](./Dockerfile), [`docker-compose.yml`](./docker-compose.yml)
 
 ---
 
-### 6. 🐳 Containerization (Docker Multi-Stage Build)
-- Multi-stage build menggunakan `golang:alpine` sebagai builder dan `alpine:3.19` sebagai runner.
-- Menghasilkan production image yang sangat ringan (**< 20 MB**).
-- Orkestrasi dengan `docker-compose.yml`.
+## 🚀 Panduan Menjalankan
 
----
-
-## 🛠️ Quick Start
-
-### Menjalankan REST API:
+### 1. Menjalankan REST API Server:
 ```bash
 go run cmd/api/main.go
 ```
-*Gunakan file [`request.http`](./request.http) untuk mencoba langsung semua endpoint via REST Client.*
+*Buka file [`request.http`](./request.http) untuk mencoba langsung seluruh endpoint (Auth, Products, Wallets, Transfer).*
 
-### Menjalankan Unit Tests:
+### 2. Menjalankan Unit Tests:
 ```bash
 go test -v -cover ./usecase/...
 ```
 
-### Menjalankan gRPC Server & Client:
+### 3. Menjalankan gRPC Server & Client:
 ```bash
 # Terminal 1
 go run grpc/server/main.go
@@ -100,7 +96,7 @@ go run grpc/server/main.go
 go run grpc/client/main.go
 ```
 
-### Menjalankan dengan Docker:
+### 4. Menjalankan via Docker Compose:
 ```bash
 docker-compose up --build
 ```
