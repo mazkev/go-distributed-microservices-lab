@@ -4,6 +4,11 @@ Repository ini berisi blueprint arsitektur dan kurikulum komprehensif pembelajar
 
 ---
 
+## 🌟 Quick Overview
+High-performance distributed systems architecture blueprint featuring Clean Architecture, Event-Driven Workers, Redis Caching, and gRPC services.
+
+---
+
 ## 🗺️ Peta Arsitektur & Modul Sistem
 
 ```mermaid
