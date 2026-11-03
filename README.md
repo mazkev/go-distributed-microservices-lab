@@ -7,6 +7,8 @@ Repository ini berisi blueprint arsitektur dan kurikulum komprehensif pembelajar
 ## 🌟 Quick Overview
 High-performance distributed systems architecture blueprint featuring Clean Architecture, Event-Driven Workers, Redis Caching, and gRPC services.
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/mazkev/go-distributed-microservices-lab)](https://goreportcard.com/report/github.com/mazkev/go-distributed-microservices-lab)
+
 ---
 
 ## 🗺️ Peta Arsitektur & Modul Sistem
